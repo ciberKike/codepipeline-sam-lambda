@@ -1,0 +1,22 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+    commands:
+      - pip install aws-sam-cli
+
+  build:
+    commands:
+      - echo Deploying SAM application...
+      - |       
+        sam deploy \
+          --stack-name $SAM_STACK_NAME \
+          --region $AWS_REGION \
+          --image-repository $SAM_ECR_URI \
+          --capabilities "CAPABILITY_IAM" \
+          --no-confirm-changeset \
+          --resolve-s3 \
+          --no-fail-on-empty-changeset \
+          --parameter-overrides S3BucketName=$SAM_S3_BUCKET LambdaImageUriSecretName=$SAM_IMAGE_URI_SECRET_NAME \
