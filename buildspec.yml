@@ -11,8 +11,8 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Building the Docker image...
-      - docker build -t $ECR_REPOSITORY_URI:$IMAGE_TAG .
-      - docker build -t $ECR_REPOSITORY_URI:latest .
+      - docker build -f docker/development/Dockerfile.tests -t $ECR_REPOSITORY_URI:$IMAGE_TAG .
+      - docker build -f docker/development/Dockerfile.tests $ECR_REPOSITORY_URI:latest .
 
   post_build:
     commands:
