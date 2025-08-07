@@ -48,7 +48,7 @@ Resources:
   TranscodeProcessorFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: "transcode-function-${EnvironmentName}"
+      FunctionName: !Sub "transcode-function-${EnvironmentName}"
       PackageType: Image
 
       # 2. The Metadata block is REMOVED. SAM will not build the image.
