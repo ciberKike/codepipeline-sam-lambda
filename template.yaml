@@ -50,11 +50,6 @@ Resources:
     Properties:
       FunctionName: !Sub "transcode-function-${EnvironmentName}"
       PackageType: Image
-
-      # 2. The Metadata block is REMOVED. SAM will not build the image.
-
-      # 3. ImageUri now points to the SSM parameter using a dynamic reference.
-      # It resolves the value of the SSM parameter named in 'LambdaImageUriSsmParamName' at deploy time.
       ImageUri: !Sub "{{resolve:secretsmanager:${LambdaImageUriSecretName}}}"
 
       Architectures:
@@ -73,7 +68,7 @@ Resources:
           VISIBILITY_TIMEOUT: 120
           WAIT_TIME_SECONDS: 20
           MAX_WIDTH: 3840
-          AWS_REGION: ""
+          RESOURCES_REGION: !Sub '${AWS::Region}'
 
 
       Events:
