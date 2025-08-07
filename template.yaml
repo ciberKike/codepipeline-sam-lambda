@@ -77,16 +77,19 @@ Resources:
 
 
       Policies:
-        - SQSSendMessagePolicy:
+        - SQSPollerPolicy:
             QueueName: !Ref SqsQueueName
+        - SQSSendMessagePolicy:
+            QueueName: !Ref SqsQueueDoneName
         - S3CrudPolicy:
             BucketName: !Ref S3BucketName
         - SQSSendMessagePolicy:
-            QueueName: !Ref SqsQueueDoneName
+            QueueName: !Ref SqsQueueDlqName
 
   MyLambdaEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
+      DependsOn: TranscodeProcessorFunction
       FunctionName: !GetAtt TranscodeProcessorFunction.Arn
       EventSourceArn: !Ref SqsQueueArn # Use the parameter you already have
       BatchSize: 1
