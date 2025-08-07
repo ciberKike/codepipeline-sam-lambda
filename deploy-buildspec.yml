@@ -19,4 +19,4 @@ phases:
           --no-confirm-changeset \
           --resolve-s3 \
           --no-fail-on-empty-changeset \
-          --parameter-overrides "S3BucketName=${SAM_S3_BUCKET} LambdaImageUriSecretName=${SAM_IMAGE_URI_SECRET_NAME}"
+          --parameter-overrides "S3BucketName=${SAM_S3_BUCKET} LambdaImageUriSecretName=${SAM_IMAGE_URI_SECRET_NAME} EnvironmentName=${ENVIRONMENT_NAME}"

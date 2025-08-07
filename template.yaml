@@ -14,17 +14,23 @@ Parameters:
     Type: String
     Description: The name of the AWS Secrets Manager secret that stores the ECR Image URI.
 
+  EnvironmentName:
+    Type: String
+    Description: The environment name
+
 Resources:
   # --- Dead Letter Queues (DLQs) and Main Queues remain the same ---
   SourceDLQ:
     Type: AWS::SQS::Queue
     Properties:
+      QueueName: !Sub "transcode-queue-dlq-${EnvironmentName}"
       MessageRetentionPeriod: 1209600 # 14 days
 
   SourceQueue:
     Type: AWS::SQS::Queue
     Properties:
-      VisibilityTimeout: 60
+      QueueName: !Sub "transcode-queue-${EnvironmentName}"
+      VisibilityTimeout: 120
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt SourceDLQ.Arn
         maxReceiveCount: 5
@@ -32,6 +38,7 @@ Resources:
   DestinationQueue:
     Type: AWS::SQS::Queue
     Properties:
+      QueueName: !Sub "transcode-done-queue-${EnvironmentName}"
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt SourceDLQ.Arn
         maxReceiveCount: 5
@@ -41,6 +48,7 @@ Resources:
   TranscodeProcessorFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: "transcode-function-${EnvironmentName}"
       PackageType: Image
 
       # 2. The Metadata block is REMOVED. SAM will not build the image.
@@ -51,12 +59,22 @@ Resources:
 
       Architectures:
         - x86_64
-      Timeout: 60
+      Timeout: 120
       Environment:
         Variables:
-          DESTINATION_QUEUE_URL: !Ref DestinationQueue
+          SQS_INPUT_QUEUE_NAME: !GetAtt SourceQueue.QueueName
+          SQS_OUTPUT_QUEUE_NAME: !GetAtt DestinationQueue.QueueName
+          SQS_DLQ_QUEUE_NAME: !GetAtt SourceDLQ.QueueName
+          SQS_INPUT_QUEUE_URL: !Ref SourceQueue
+          SQS_OUTPUT_QUEUE_URL: !Ref DestinationQueue
+          SQS_DLQ_QUEUE_URL: !Ref SourceDLQ
           S3_BUCKET_NAME: !Ref S3BucketName
-          SOURCE_DLQ_URL: !Ref SourceDLQ
+          MAX_RETRIES: 3
+          VISIBILITY_TIMEOUT: 120
+          WAIT_TIME_SECONDS: 20
+          MAX_WIDTH: 3840
+          AWS_REGION: ""
+
 
       Events:
         SqsEvent:
