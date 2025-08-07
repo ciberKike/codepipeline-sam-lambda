@@ -78,7 +78,7 @@ Resources:
 
       Policies:
         - SQSSendMessagePolicy:
-            QueueName: !Ref SqsQueueUrlName
+            QueueName: !Ref SqsQueueName
         - S3CrudPolicy:
             BucketName: !Ref S3BucketName
         - SQSSendMessagePolicy:
