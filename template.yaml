@@ -18,31 +18,36 @@ Parameters:
     Type: String
     Description: The environment name
 
+  SqsQueueDlqName:
+    Type: String
+    Description: The sqs dlq name
+
+  SqsQueueDlqUrl:
+    Type: String
+    Description: The sqs dlq url
+
+  SqsQueueName:
+    Type: String
+    Description: The sqs name to receive message to transcode videos
+
+  SqsQueueUrl:
+    Type: String
+    Description: The sqs url to receive message to transcode videos
+
+  SqsQueueArn:
+    Type: String
+    Description: The sqs arn to receive message to transcode videos
+
+  SqsQueueDoneName:
+    Type: String
+    Description: The sqs name  to send message to let know the video has been transcode
+
+  SqsQueueDoneUrl:
+    Type: String
+    Description: The sqs url  to send message to let know the video has been transcode
+
+
 Resources:
-  # --- Dead Letter Queues (DLQs) and Main Queues remain the same ---
-  SourceDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "transcode-queue-dlq-${EnvironmentName}"
-      MessageRetentionPeriod: 1209600 # 14 days
-
-  SourceQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "transcode-queue-${EnvironmentName}"
-      VisibilityTimeout: 120
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt SourceDLQ.Arn
-        maxReceiveCount: 5
-
-  DestinationQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "transcode-done-queue-${EnvironmentName}"
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt SourceDLQ.Arn
-        maxReceiveCount: 5
-
   # ---------------- Lambda Function (Modified) ----------------
 
   TranscodeProcessorFunction:
@@ -57,12 +62,12 @@ Resources:
       Timeout: 120
       Environment:
         Variables:
-          SQS_INPUT_QUEUE_NAME: !GetAtt SourceQueue.QueueName
-          SQS_OUTPUT_QUEUE_NAME: !GetAtt DestinationQueue.QueueName
-          SQS_DLQ_QUEUE_NAME: !GetAtt SourceDLQ.QueueName
-          SQS_INPUT_QUEUE_URL: !Ref SourceQueue
-          SQS_OUTPUT_QUEUE_URL: !Ref DestinationQueue
-          SQS_DLQ_QUEUE_URL: !Ref SourceDLQ
+          SQS_INPUT_QUEUE_NAME: !Ref SqsQueueName
+          SQS_OUTPUT_QUEUE_NAME: !Ref SqsQueueDoneName
+          SQS_DLQ_QUEUE_NAME: !Ref SqsQueueDlqName
+          SQS_INPUT_QUEUE_URL: !Ref SqsQueueUrl
+          SQS_OUTPUT_QUEUE_URL: !Ref SqsQueueDoneUrl
+          SQS_DLQ_QUEUE_URL: !Ref SqsQueueDlqUrl
           S3_BUCKET_NAME: !Ref S3BucketName
           MAX_RETRIES: 3
           VISIBILITY_TIMEOUT: 120
@@ -71,32 +76,23 @@ Resources:
           RESOURCES_REGION: !Sub '${AWS::Region}'
 
 
-      Events:
-        SqsEvent:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt SourceQueue.Arn
-            BatchSize: 1
-
       Policies:
         - SQSSendMessagePolicy:
-            QueueName: !GetAtt DestinationQueue.QueueName
+            QueueName: !Ref SqsQueueUrlName
         - S3CrudPolicy:
             BucketName: !Ref S3BucketName
         - SQSSendMessagePolicy:
-            QueueName: !GetAtt SourceDLQ.QueueName
+            QueueName: !Ref SqsQueueDoneName
+
+  MyLambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !GetAtt TranscodeProcessorFunction.Arn
+      EventSourceArn: !Ref SqsQueueArn # Use the parameter you already have
+      BatchSize: 1
 
 # --- Outputs remain the same ---
 Outputs:
-  SourceQueueURL:
-    Description: "URL of the source SQS queue"
-    Value: !Ref SourceQueue
-  SourceDLQURL:
-    Description: "URL of the source Dead Letter Queue"
-    Value: !Ref SourceDLQ
-  DestinationQueueURL:
-    Description: "URL of the destination SQS queue"
-    Value: !Ref DestinationQueue
   LambdaFunctionArn:
     Description: "ARN of the SQS Processor Lambda function"
     Value: !GetAtt TranscodeProcessorFunction.Arn
